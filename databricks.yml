@@ -25,6 +25,8 @@ resources:
       serverless: true
       catalog: workspace
       schema: fhrs
+      lifecycle:
+        prevent_destroy: true
       libraries:
         - file:
             path: src/food_hygiene.py

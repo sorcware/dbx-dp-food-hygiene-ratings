@@ -2,11 +2,8 @@ from pyspark import pipelines as dp
 
 @dp.table(
     name="food_hygiene_raw",
-    comment="Append only raw API responses, never reprocessed",
-    table_properties={
-        "quality": "raw",
-        "pipelines.reset.allowed": "false"
-    }
+    comment="Current snapshot of all establishments from the API, refreshed each run",
+    table_properties={"quality": "raw"}
 )
 def food_hygiene_raw():
     return (
