@@ -1,0 +1,36 @@
+# This is a Databricks asset bundle definition for dbx-dp-food-hygiene-ratings.
+# The Databricks extension requires databricks.yml configuration file.
+# See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
+
+bundle:
+  name: dbx-dp-food-hygiene-ratings
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://dbc-37e2d063-7393.cloud.databricks.com
+
+  ## Optionally, there could be 'staging' or 'prod' targets here.
+  #
+  # prod:
+  #   workspace:
+  #     host: https://dbc-37e2d063-7393.cloud.databricks.com
+
+resources:
+  pipelines:
+    food_hygiene_pipeline:
+      name: food_hygiene_pipeline
+      serverless: true
+      catalog: workspace
+      schema: fhrs
+      libraries:
+        - file:
+            path: src/food_hygiene.py
+        - file:
+            path: pipelines/food_hygiene_raw.py
+        - file:
+            path: pipelines/food_hygiene_bronze.py
+        - file:
+            path: pipelines/food_hygiene_silver.py

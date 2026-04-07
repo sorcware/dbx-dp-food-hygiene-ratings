@@ -1,0 +1,9 @@
+[project]
+name = "dbx-dp-food-hygiene-ratings"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "databricks-connect>=18.1.2",
+]
