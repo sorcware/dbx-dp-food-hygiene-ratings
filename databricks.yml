@@ -12,13 +12,26 @@ targets:
     workspace:
       host: https://dbc-37e2d063-7393.cloud.databricks.com
 
-  ## Optionally, there could be 'staging' or 'prod' targets here.
-  #
-  # prod:
-  #   workspace:
-  #     host: https://dbc-37e2d063-7393.cloud.databricks.com
 
 resources:
+  jobs:
+    ingest_food_hygiene:
+      name: ingest_food_hygiene
+      tasks:
+        - task_key: ingest
+          spark_python_task:
+            python_file: src/jobs/ingest_food_hygiene.py
+          environment_key: default
+        - task_key: transform
+          depends_on:
+            - task_key: ingest
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.food_hygiene_pipeline.id}
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+
   pipelines:
     food_hygiene_pipeline:
       name: food_hygiene_pipeline
@@ -29,10 +42,6 @@ resources:
         prevent_destroy: true
       libraries:
         - file:
-            path: src/food_hygiene.py
+            path: src/pipelines/food_hygiene_bronze.py
         - file:
-            path: pipelines/food_hygiene_raw.py
-        - file:
-            path: pipelines/food_hygiene_bronze.py
-        - file:
-            path: pipelines/food_hygiene_silver.py
+            path: src/pipelines/food_hygiene_silver.py
