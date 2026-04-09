@@ -15,12 +15,12 @@ targets:
 
 resources:
   jobs:
-    ingest_food_hygiene:
-      name: ingest_food_hygiene
+    ingest_fhrs:
+      name: ingest_fhrs
       tasks:
         - task_key: ingest
           spark_python_task:
-            python_file: src/jobs/ingest_food_hygiene.py
+            python_file: src/jobs/ingest_fhrs.py
           environment_key: default
         - task_key: transform
           depends_on:
@@ -38,10 +38,10 @@ resources:
       serverless: true
       catalog: workspace
       schema: fhrs
-      lifecycle:
-        prevent_destroy: true
       libraries:
         - file:
-            path: src/pipelines/food_hygiene_bronze.py
+            path: src/pipelines/bronze.py
         - file:
-            path: src/pipelines/food_hygiene_silver.py
+            path: src/pipelines/silver.py
+        - file:
+            path: src/pipelines/gold.py
