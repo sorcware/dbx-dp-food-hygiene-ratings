@@ -10,7 +10,7 @@ targets:
     mode: development
     default: true
     workspace:
-      host: https://dbc-37e2d063-7393.cloud.databricks.com
+      host: ${env.DATABRICKS_HOST}
 
 
 resources:

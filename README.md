@@ -40,20 +40,38 @@ A serverless Lakeflow Declarative Pipeline writing to `workspace.fhrs` with thre
 
 ## Development Setup
 
-```bash
-uv sync
-databricks bundle validate
-```
+1. Install dependencies:
+   ```bash
+   uv sync
+   ```
+
+2. Copy the env template and fill in your values:
+   ```bash
+   cp .env.template .env
+   ```
+
+   | Variable | Description |
+   |----------|-------------|
+   | `DATABRICKS_HOST` | Your Databricks workspace URL, e.g. `https://<workspace>.cloud.databricks.com` |
+
+   `.env` is gitignored and should never be committed.
+
+3. Load the env and validate the bundle:
+   ```bash
+   source .env && databricks bundle validate
+   ```
 
 ## Deployment
 
 ```bash
 # Deploy to dev (default target)
-databricks bundle deploy
+source .env && databricks bundle deploy
 
 # Run the full ingest + pipeline job
-databricks bundle run ingest_fhrs
+source .env && databricks bundle run ingest_fhrs
 ```
+
+> **Tip:** Use [direnv](https://direnv.net/) to auto-load `.env` when entering the project directory, so you don't need to `source .env` manually.
 
 ## Data Sources
 
