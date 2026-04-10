@@ -8,13 +8,47 @@ Databricks Asset Bundle that ingests and transforms UK Food Hygiene Rating Schem
 FSA API  →  ingest_fhrs (Job)  →  raw tables  →  Pipeline (bronze → silver → gold)
 ```
 
+### Project Structure
+
+```
+├── databricks.yml              # Bundle config — job, pipeline, artifact
+├── pyproject.toml              # Package definition (datasources wheel)
+├── dist/                       # Built wheel output (gitignored)
+└── src/
+    ├── datasources/            # Packaged as a wheel and installed on the cluster
+    │   └── fhrs/
+    │       ├── _datasource.py  # FhrsDataSource base class
+    │       ├── _http.py        # Shared HTTP session + partition dataclasses
+    │       ├── establishments.py
+    │       ├── authorities.py
+    │       ├── countries.py
+    │       ├── regions.py
+    │       ├── business_types.py
+    │       ├── ratings.py
+    │       ├── rating_operators.py
+    │       ├── sort_options.py
+    │       └── scheme_types.py
+    ├── jobs/
+    │   └── ingest_fhrs.py      # spark_python_task entry point
+    └── pipelines/
+        ├── bronze.py
+        ├── silver.py
+        └── gold.py
+```
+
 ### Job: `ingest_fhrs`
 
 A two-task Databricks job:
 
-1. **ingest** (`src/jobs/ingest_fhrs.py`) — Uses custom PySpark data sources to fetch data from the FSA API and append it to raw Unity Catalog tables under `workspace.fhrs.*`. Each reference endpoint (countries, regions, authorities, etc.) stores the full API JSON response per run. Establishment data is fetched per-authority as XML.
+1. **ingest** (`src/jobs/ingest_fhrs.py`) — Registers and runs custom PySpark data sources to fetch data from the FSA API and append it to raw Unity Catalog tables under `workspace.fhrs.*`. The data sources are packaged as a wheel (`src/datasources/`) and installed into the task environment at deploy time. Each reference endpoint stores the full API JSON response per run; establishment data is fetched per-authority as XML.
 
 2. **transform** — Runs the Lakeflow Spark Declarative Pipeline after ingest completes.
+
+### Datasources Package
+
+The `src/datasources/` directory is built into a Python wheel and uploaded to the workspace by the bundle on deploy. It is installed as a library dependency of the ingest task, making `from datasources.fhrs import ALL_DATA_SOURCES` available in `ingest_fhrs.py` without any path manipulation.
+
+Each FSA endpoint has its own file under `src/datasources/fhrs/` as a subclass of `FhrsDataSource`, which implements the PySpark `DataSource` API. The `ALL_DATA_SOURCES` list in `src/datasources/fhrs/__init__.py` aggregates all sources for registration.
 
 ### Pipeline: `food_hygiene_pipeline`
 
@@ -36,7 +70,8 @@ A serverless Lakeflow Declarative Pipeline writing to `workspace.fhrs` with thre
 
 - Databricks workspace with serverless pipelines enabled
 - Unity Catalog with a `workspace` catalog and `fhrs` schema
-- Databricks CLI with the bundle extension
+- Databricks CLI installed and authenticated (`databricks configure`)
+- [uv](https://docs.astral.sh/uv/) package manager
 
 ## Development Setup
 
@@ -45,33 +80,22 @@ A serverless Lakeflow Declarative Pipeline writing to `workspace.fhrs` with thre
    uv sync
    ```
 
-2. Copy the env template and fill in your values:
+2. Validate the bundle:
    ```bash
-   cp .env.template .env
-   ```
-
-   | Variable | Description |
-   |----------|-------------|
-   | `DATABRICKS_HOST` | Your Databricks workspace URL, e.g. `https://<workspace>.cloud.databricks.com` |
-
-   `.env` is gitignored and should never be committed.
-
-3. Load the env and validate the bundle:
-   ```bash
-   source .env && databricks bundle validate
+   databricks bundle validate
    ```
 
 ## Deployment
 
+The bundle builds the datasources wheel automatically on deploy using `uv build`.
+
 ```bash
-# Deploy to dev (default target)
-source .env && databricks bundle deploy
+# Deploy to dev (default target) — builds wheel, uploads, deploys job + pipeline
+databricks bundle deploy
 
 # Run the full ingest + pipeline job
-source .env && databricks bundle run ingest_fhrs
+databricks bundle run ingest_fhrs
 ```
-
-> **Tip:** Use [direnv](https://direnv.net/) to auto-load `.env` when entering the project directory, so you don't need to `source .env` manually.
 
 ## Data Sources
 
