@@ -1,8 +1,8 @@
 from pyspark import pipelines as dp
 from pyspark.sql import functions as F
 from pyspark.sql.types import (
-    ArrayType, DateType, IntegerType, LongType, StringType,
-    StructField, StructType, TimestampType,
+    DateType, IntegerType, LongType, StringType,
+    StructField, StructType, ArrayType
 )
 
 
@@ -63,8 +63,8 @@ _authority_schema = StructType([
     StructField("FileName", StringType()),
     StructField("FileNameWelsh", StringType()),
     StructField("EstablishmentCount", IntegerType()),
-    StructField("CreationDate", TimestampType()),
-    StructField("LastPublishedDate", TimestampType()),
+    StructField("CreationDate", StringType()),
+    StructField("LastPublishedDate", StringType()),
     StructField("SchemeType", IntegerType()),
 ])
 
@@ -143,6 +143,7 @@ def bronze_establishments():
 # ---------------------------------------------------------------------------
 
 # (source_table, array_key, bronze_table_name, item_schema)
+# Each raw row is the full API response; array_key is the top-level key holding the array.
 _REFERENCE_SOURCES = [
     ("workspace.fhrs.countries",        "countries",       "bronze_countries",        _country_schema),
     ("workspace.fhrs.regions",          "regions",         "bronze_regions",          _region_schema),
