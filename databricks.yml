@@ -5,12 +5,18 @@
 bundle:
   name: dbx-dp-food-hygiene-ratings
 
+artifacts:
+  python_artifact:
+    type: whl
+    build: uv build
+    path: .
+
 targets:
   dev:
     mode: development
     default: true
     workspace:
-      host: ${env.DATABRICKS_HOST}
+      host: https://dbc-37e2d063-7393.cloud.databricks.com
 
 
 resources:
@@ -31,6 +37,8 @@ resources:
         - environment_key: default
           spec:
             environment_version: "2"
+            dependencies:
+              - dist/*.whl
 
   pipelines:
     food_hygiene_pipeline:

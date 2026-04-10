@@ -3,7 +3,18 @@ name = "dbx-dp-food-hygiene-ratings"
 version = "1.0.0"
 description = "Basic ingestion for Food hygiene ratings in the UK using custom pyspark data sources and declarative pipelines."
 readme = "README.md"
-requires-python = ">=3.13"
-dependencies = [
+requires-python = ">=3.11"
+dependencies = []
+
+[dependency-groups]
+dev = [
     "databricks-connect>=18.1.2",
 ]
+
+[build-system]
+requires = ["uv_build>=0.6.6,<0.7"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = "src"
+module-name = "datasources"
