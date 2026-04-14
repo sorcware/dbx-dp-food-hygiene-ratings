@@ -8,28 +8,28 @@ bundle:
 variables:
   raw_catalog:
     description: Unity Catalog catalog name for the raw ingest layer
-    default: workspace
+    default: raw
   raw_schema:
     description: Schema name for the raw ingest layer
-    default: fhrs_raw
+    default: fhrs
   bronze_catalog:
     description: Unity Catalog catalog name for the bronze layer
-    default: workspace
+    default: bronze
   bronze_schema:
     description: Schema name for the bronze layer
     default: fhrs
   silver_catalog:
     description: Unity Catalog catalog name for the silver layer
-    default: workspace
+    default: silver
   silver_schema:
     description: Schema name for the silver layer
-    default: fhrs_silver
+    default: fhrs
   gold_catalog:
     description: Unity Catalog catalog name for the gold layer
-    default: workspace
+    default: gold
   gold_schema:
     description: Schema name for the gold layer
-    default: fhrs_gold
+    default: fhrs
 
 artifacts:
   python_artifact:
@@ -41,6 +41,31 @@ targets:
   dev:
     mode: development
     default: true
+    workspace:
+      host: https://dbc-37e2d063-7393.cloud.databricks.com
+    variables:
+      raw_catalog: raw_dev
+      bronze_catalog: bronze_dev
+      silver_catalog: silver_dev
+      gold_catalog: gold_dev
+  uat:
+    mode: production
+    workspace:
+      host: https://dbc-37e2d063-7393.cloud.databricks.com
+    variables:
+      raw_catalog: raw_uat
+      bronze_catalog: bronze_uat
+      silver_catalog: silver_uat
+      gold_catalog: gold_uat
+    resources:
+      jobs:
+        ingest_fhrs:
+          name: "[uat] ingest_fhrs"
+      pipelines:
+        food_hygiene_pipeline:
+          name: "[uat] food_hygiene_pipeline"
+  prod:
+    mode: production
     workspace:
       host: https://dbc-37e2d063-7393.cloud.databricks.com
 
