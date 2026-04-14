@@ -5,8 +5,17 @@ Databricks Asset Bundle that ingests and transforms UK Food Hygiene Rating Schem
 ## Architecture
 
 ```
-FSA API  →  ingest_fhrs (Job)  →  raw tables  →  Pipeline (bronze → silver → gold)
+FSA API  →  ingest_fhrs (Job)  →  raw catalog  →  Pipeline (bronze → silver → gold)
 ```
+
+Data flows across four separate Unity Catalog catalogs:
+
+| Catalog | Schema | Contents |
+|---------|--------|----------|
+| `raw` | `fhrs` | Raw API responses written by the ingest job |
+| `bronze` | `fhrs` | Parsed, typed tables produced by the pipeline |
+| `silver` | `fhrs` | SCD Type 2 history tables |
+| `gold` | `fhrs` | Current (non-expired) materialized views |
 
 ### Project Structure
 
@@ -40,7 +49,7 @@ FSA API  →  ingest_fhrs (Job)  →  raw tables  →  Pipeline (bronze → silv
 
 A two-task Databricks job:
 
-1. **ingest** (`src/jobs/ingest_fhrs.py`) — Registers and runs custom PySpark data sources to fetch data from the FSA API and append it to raw Unity Catalog tables under `workspace.fhrs.*`. The data sources are packaged as a wheel (`src/datasources/`) and installed into the task environment at deploy time. Each reference endpoint stores the full API JSON response per run; establishment data is fetched per-authority as XML.
+1. **ingest** (`src/jobs/ingest_fhrs.py`) — Registers and runs custom PySpark data sources to fetch data from the FSA API and append it to raw Unity Catalog tables. The target catalog and schema are passed as task parameters from the bundle variables. The data sources are packaged as a wheel (`src/datasources/`) and installed into the task environment at deploy time. Each reference endpoint stores the full API JSON response per run; establishment data is fetched per-authority as XML.
 
 2. **transform** — Runs the Lakeflow Spark Declarative Pipeline after ingest completes.
 
@@ -52,13 +61,13 @@ Each FSA endpoint has its own file under `src/datasources/fhrs/` as a subclass o
 
 ### Pipeline: `food_hygiene_pipeline`
 
-A serverless Lakeflow Declarative Pipeline writing to `workspace.fhrs` with three layers:
+A serverless Lakeflow Declarative Pipeline with three layers. The catalog and schema for each layer are passed via the bundle `configuration` block and read at runtime via `spark.conf.get()`.
 
-| Layer | Source | Tables |
-|-------|--------|--------|
-| **Bronze** (`src/pipelines/bronze.py`) | Raw tables | `bronze_establishments`, `bronze_authorities`, `bronze_countries`, `bronze_regions`, `bronze_business_types`, `bronze_ratings`, `bronze_rating_operators`, `bronze_sort_options`, `bronze_scheme_types` |
-| **Silver** (`src/pipelines/silver.py`) | Bronze tables | `silver_*` — SCD Type 2 via `AUTO CDC`, keyed per entity |
-| **Gold** (`src/pipelines/gold.py`) | Silver tables | `gold_*` — Materialized views of current (non-expired) records |
+| Layer | Reads from | Writes to | Tables |
+|-------|-----------|-----------|--------|
+| **Bronze** (`src/pipelines/bronze.py`) | `raw.fhrs.*` | `bronze.fhrs.*` | `bronze_establishments`, `bronze_authorities`, `bronze_countries`, `bronze_regions`, `bronze_business_types`, `bronze_ratings`, `bronze_rating_operators`, `bronze_sort_options`, `bronze_scheme_types` |
+| **Silver** (`src/pipelines/silver.py`) | `bronze.fhrs.*` | `silver.fhrs.*` | `silver_*` — SCD Type 2 via `AUTO CDC`, keyed per entity |
+| **Gold** (`src/pipelines/gold.py`) | `silver.fhrs.*` | `gold.fhrs.*` | `gold_*` — Materialized views of current (non-expired) records |
 
 **Bronze** parses raw JSON (reference data) and XML (establishments) into typed columns. Reference tables use `from_json` + `explode` to unpack the API array response; establishment tables use `from_xml` + `explode` on the XML bulk download.
 
@@ -69,7 +78,7 @@ A serverless Lakeflow Declarative Pipeline writing to `workspace.fhrs` with thre
 ## Prerequisites
 
 - Databricks workspace with serverless pipelines enabled
-- Unity Catalog with a `workspace` catalog and `fhrs` schema
+- Unity Catalog with four catalogs: `raw`, `bronze`, `silver`, `gold` (catalog creation requires metastore admin)
 - Databricks CLI installed and authenticated (`databricks configure`)
 - [uv](https://docs.astral.sh/uv/) package manager
 
@@ -87,15 +96,43 @@ A serverless Lakeflow Declarative Pipeline writing to `workspace.fhrs` with thre
 
 ## Deployment
 
-The bundle builds the datasources wheel automatically on deploy using `uv build`.
+The bundle builds the datasources wheel automatically on deploy using `uv build`. Catalog and schema names are configurable via bundle variables — the `deploy.sh` script sets them for this workspace.
+
+The bundle creates the schemas automatically on deploy. The four catalogs (`raw`, `bronze`, `silver`, `gold`) must already exist.
+
+In development mode, Databricks automatically prefixes schema names with `dev_<username>_` (e.g. `dev_atedimmock_fhrs`). The bundle resolves this correctly by referencing deployed schema resource names rather than raw variable values.
 
 ```bash
-# Deploy to dev (default target) — builds wheel, uploads, deploys job + pipeline
-databricks bundle deploy
+# Deploy using the provided script (sets all catalog/schema variables)
+./deploy.sh
+
+# Or deploy manually with custom catalogs
+databricks bundle deploy -p <profile> \
+  --var="raw_catalog=my_raw" \
+  --var="raw_schema=fhrs" \
+  --var="bronze_catalog=my_bronze" \
+  --var="bronze_schema=fhrs" \
+  --var="silver_catalog=my_silver" \
+  --var="silver_schema=fhrs" \
+  --var="gold_catalog=my_gold" \
+  --var="gold_schema=fhrs"
 
 # Run the full ingest + pipeline job
 databricks bundle run ingest_fhrs
 ```
+
+### Bundle Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `raw_catalog` | `workspace` | Catalog for raw ingest tables |
+| `raw_schema` | `fhrs_raw` | Schema for raw ingest tables |
+| `bronze_catalog` | `workspace` | Catalog for bronze tables |
+| `bronze_schema` | `fhrs` | Schema for bronze tables |
+| `silver_catalog` | `workspace` | Catalog for silver tables |
+| `silver_schema` | `fhrs_silver` | Schema for silver tables |
+| `gold_catalog` | `workspace` | Catalog for gold tables |
+| `gold_schema` | `fhrs_gold` | Schema for gold tables |
 
 ## Data Sources
 

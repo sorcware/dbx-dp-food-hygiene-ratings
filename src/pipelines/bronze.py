@@ -4,7 +4,13 @@ from pyspark.sql.types import (
     DateType, IntegerType, LongType, StringType,
     StructField, StructType, ArrayType
 )
+from databricks.sdk.runtime import spark
 
+
+_RAW_CATALOG = spark.conf.get("raw_catalog")
+_RAW_SCHEMA = spark.conf.get("raw_schema")
+_CATALOG = spark.conf.get("bronze_catalog")
+_SCHEMA = spark.conf.get("bronze_schema")
 
 _TABLE_PROPERTIES = {"quality": "bronze"}
 
@@ -105,13 +111,13 @@ _scheme_type_schema = StructType([
 # ---------------------------------------------------------------------------
 
 @dp.table(
-    name="bronze_establishments",
+    name=f"{_CATALOG}.{_SCHEMA}.bronze_establishments",
     comment="Parsed food hygiene establishments, full history",
     table_properties=_TABLE_PROPERTIES,
 )
 def bronze_establishments():
     return (
-        spark.readStream.table("workspace.fhrs.establishments")
+        spark.readStream.table(f"{_RAW_CATALOG}.{_RAW_SCHEMA}.establishments")
             .select(
                 F.explode(
                     F.from_xml("raw", _file_schema)
@@ -145,14 +151,14 @@ def bronze_establishments():
 # (source_table, array_key, bronze_table_name, item_schema)
 # Each raw row is the full API response; array_key is the top-level key holding the array.
 _REFERENCE_SOURCES = [
-    ("workspace.fhrs.countries",        "countries",       "bronze_countries",        _country_schema),
-    ("workspace.fhrs.regions",          "regions",         "bronze_regions",          _region_schema),
-    ("workspace.fhrs.authorities",      "authorities",     "bronze_authorities",      _authority_schema),
-    ("workspace.fhrs.business_types",   "businessTypes",   "bronze_business_types",   _business_type_schema),
-    ("workspace.fhrs.ratings",          "ratings",         "bronze_ratings",          _rating_schema),
-    ("workspace.fhrs.rating_operators", "ratingOperator",  "bronze_rating_operators", _rating_operator_schema),
-    ("workspace.fhrs.sort_options",     "sortOptions",     "bronze_sort_options",     _sort_option_schema),
-    ("workspace.fhrs.scheme_types",     "schemeTypes",     "bronze_scheme_types",     _scheme_type_schema),
+    (f"{_RAW_CATALOG}.{_RAW_SCHEMA}.countries",        "countries",       "bronze_countries",        _country_schema),
+    (f"{_RAW_CATALOG}.{_RAW_SCHEMA}.regions",          "regions",         "bronze_regions",          _region_schema),
+    (f"{_RAW_CATALOG}.{_RAW_SCHEMA}.authorities",      "authorities",     "bronze_authorities",      _authority_schema),
+    (f"{_RAW_CATALOG}.{_RAW_SCHEMA}.business_types",   "businessTypes",   "bronze_business_types",   _business_type_schema),
+    (f"{_RAW_CATALOG}.{_RAW_SCHEMA}.ratings",          "ratings",         "bronze_ratings",          _rating_schema),
+    (f"{_RAW_CATALOG}.{_RAW_SCHEMA}.rating_operators", "ratingOperator",  "bronze_rating_operators", _rating_operator_schema),
+    (f"{_RAW_CATALOG}.{_RAW_SCHEMA}.sort_options",     "sortOptions",     "bronze_sort_options",     _sort_option_schema),
+    (f"{_RAW_CATALOG}.{_RAW_SCHEMA}.scheme_types",     "schemeTypes",     "bronze_scheme_types",     _scheme_type_schema),
 ]
 
 
@@ -173,7 +179,7 @@ def _make_reference_table(source_table, array_key, table_name, item_schema):
         )
 
     _reader.__name__ = table_name
-    dp.table(name=table_name, table_properties=_TABLE_PROPERTIES)(_reader)
+    dp.table(name=f"{_CATALOG}.{_SCHEMA}.{table_name}", table_properties=_TABLE_PROPERTIES)(_reader)
 
 
 for _source, _key, _name, _schema in _REFERENCE_SOURCES:

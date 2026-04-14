@@ -1,21 +1,26 @@
+import sys
+
 from pyspark.sql import functions as F
 from databricks.sdk.runtime import spark
 
 from datasources.fhrs import ALL_DATA_SOURCES
 
+_CATALOG = sys.argv[1] if len(sys.argv) > 1 else "workspace"
+_SCHEMA = sys.argv[2] if len(sys.argv) > 2 else "fhrs"
+
 # ScoreDescriptors are excluded — they are per-establishment lookups, not
 # a batch reference dataset.
 
 _SOURCES = [
-    ("fhrs_establishments",   "workspace.fhrs.establishments"),
-    ("fhrs_countries",        "workspace.fhrs.countries"),
-    ("fhrs_regions",          "workspace.fhrs.regions"),
-    ("fhrs_authorities",      "workspace.fhrs.authorities"),
-    ("fhrs_business_types",   "workspace.fhrs.business_types"),
-    ("fhrs_ratings",          "workspace.fhrs.ratings"),
-    ("fhrs_rating_operators", "workspace.fhrs.rating_operators"),
-    ("fhrs_sort_options",     "workspace.fhrs.sort_options"),
-    ("fhrs_scheme_types",     "workspace.fhrs.scheme_types"),
+    ("fhrs_establishments",   f"{_CATALOG}.{_SCHEMA}.establishments"),
+    ("fhrs_countries",        f"{_CATALOG}.{_SCHEMA}.countries"),
+    ("fhrs_regions",          f"{_CATALOG}.{_SCHEMA}.regions"),
+    ("fhrs_authorities",      f"{_CATALOG}.{_SCHEMA}.authorities"),
+    ("fhrs_business_types",   f"{_CATALOG}.{_SCHEMA}.business_types"),
+    ("fhrs_ratings",          f"{_CATALOG}.{_SCHEMA}.ratings"),
+    ("fhrs_rating_operators",  f"{_CATALOG}.{_SCHEMA}.rating_operators"),
+    ("fhrs_sort_options",     f"{_CATALOG}.{_SCHEMA}.sort_options"),
+    ("fhrs_scheme_types",     f"{_CATALOG}.{_SCHEMA}.scheme_types"),
 ]
 
 

@@ -3,7 +3,7 @@ name = "dbx-dp-food-hygiene-ratings"
 version = "1.1.0"
 description = "Basic ingestion for Food hygiene ratings in the UK using custom pyspark data sources and declarative pipelines."
 readme = "README.md"
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.11"
 dependencies = []
 
 [dependency-groups]

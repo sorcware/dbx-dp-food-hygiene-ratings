@@ -5,6 +5,32 @@
 bundle:
   name: dbx-dp-food-hygiene-ratings
 
+variables:
+  raw_catalog:
+    description: Unity Catalog catalog name for the raw ingest layer
+    default: workspace
+  raw_schema:
+    description: Schema name for the raw ingest layer
+    default: fhrs_raw
+  bronze_catalog:
+    description: Unity Catalog catalog name for the bronze layer
+    default: workspace
+  bronze_schema:
+    description: Schema name for the bronze layer
+    default: fhrs
+  silver_catalog:
+    description: Unity Catalog catalog name for the silver layer
+    default: workspace
+  silver_schema:
+    description: Schema name for the silver layer
+    default: fhrs_silver
+  gold_catalog:
+    description: Unity Catalog catalog name for the gold layer
+    default: workspace
+  gold_schema:
+    description: Schema name for the gold layer
+    default: fhrs_gold
+
 artifacts:
   python_artifact:
     type: whl
@@ -27,6 +53,9 @@ resources:
         - task_key: ingest
           spark_python_task:
             python_file: src/jobs/ingest_fhrs.py
+            parameters:
+              - ${var.raw_catalog}
+              - ${resources.schemas.raw_schema.name}
           environment_key: default
         - task_key: transform
           depends_on:
@@ -44,8 +73,17 @@ resources:
     food_hygiene_pipeline:
       name: food_hygiene_pipeline
       serverless: true
-      catalog: workspace
-      schema: fhrs
+      catalog: ${var.bronze_catalog}
+      target: ${resources.schemas.bronze_schema.name}
+      configuration:
+        raw_catalog: ${var.raw_catalog}
+        raw_schema: ${resources.schemas.raw_schema.name}
+        bronze_catalog: ${var.bronze_catalog}
+        bronze_schema: ${resources.schemas.bronze_schema.name}
+        silver_catalog: ${var.silver_catalog}
+        silver_schema: ${resources.schemas.silver_schema.name}
+        gold_catalog: ${var.gold_catalog}
+        gold_schema: ${resources.schemas.gold_schema.name}
       libraries:
         - file:
             path: src/pipelines/bronze.py
@@ -53,3 +91,17 @@ resources:
             path: src/pipelines/silver.py
         - file:
             path: src/pipelines/gold.py
+
+  schemas:
+    raw_schema:
+      catalog_name: ${var.raw_catalog}
+      name: ${var.raw_schema}
+    bronze_schema:
+      catalog_name: ${var.bronze_catalog}
+      name: ${var.bronze_schema}
+    silver_schema:
+      catalog_name: ${var.silver_catalog}
+      name: ${var.silver_schema}
+    gold_schema:
+      catalog_name: ${var.gold_catalog}
+      name: ${var.gold_schema}

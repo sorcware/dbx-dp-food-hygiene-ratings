@@ -1,5 +1,11 @@
 from pyspark import pipelines as dp
 from pyspark.sql import functions as F
+from databricks.sdk.runtime import spark
+
+_SILVER_CATALOG = spark.conf.get("silver_catalog")
+_SILVER_SCHEMA = spark.conf.get("silver_schema")
+_GOLD_CATALOG = spark.conf.get("gold_catalog")
+_GOLD_SCHEMA = spark.conf.get("gold_schema")
 
 _GOLD_SOURCES = [
     ("silver_establishments",   "gold_establishments"),
@@ -15,14 +21,17 @@ _GOLD_SOURCES = [
 
 
 def _make_gold_current(silver_table, gold_table):
+    _qualified_silver = f"{_SILVER_CATALOG}.{_SILVER_SCHEMA}.{silver_table}"
+    _qualified_gold = f"{_GOLD_CATALOG}.{_GOLD_SCHEMA}.{gold_table}"
+
     def _current():
         return (
-            spark.read.table(silver_table)
+            spark.read.table(_qualified_silver)
             .filter(F.col("__END_AT").isNull())
         )
 
     dp.materialized_view(
-        name=gold_table,
+        name=_qualified_gold,
         table_properties={"quality": "gold"},
     )(_current)
 
