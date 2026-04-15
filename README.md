@@ -80,6 +80,7 @@ A serverless Lakeflow Declarative Pipeline with three layers. The catalog and sc
 - Databricks workspace with serverless pipelines enabled
 - Unity Catalog with four catalogs: `raw`, `bronze`, `silver`, `gold` (catalog creation requires metastore admin)
 - Databricks CLI installed and authenticated (`databricks configure`)
+- Python 3.12
 - [uv](https://docs.astral.sh/uv/) package manager
 
 ## Development Setup
@@ -96,17 +97,21 @@ A serverless Lakeflow Declarative Pipeline with three layers. The catalog and sc
 
 ## Deployment
 
-The bundle builds the datasources wheel automatically on deploy using `uv build`. Catalog and schema names are configurable via bundle variables — the `deploy.sh` script sets them for this workspace.
+The bundle builds the datasources wheel automatically on deploy using `uv build`. Catalog and schema names are configurable via bundle variables.
 
 The bundle creates the schemas automatically on deploy. The four catalogs (`raw`, `bronze`, `silver`, `gold`) must already exist.
 
+Set `DATABRICKS_HOST` in your environment or use a configured Databricks CLI profile before running bundle commands.
+
 In development mode, Databricks automatically prefixes schema names with `dev_<username>_` (e.g. `dev_atedimmock_fhrs`). The bundle resolves this correctly by referencing deployed schema resource names rather than raw variable values.
 
-```bash
-# Deploy using the provided script (sets all catalog/schema variables)
-./deploy.sh
+The default catalog and schema values are defined in `databricks.yml`. You can deploy with those defaults as-is, or override individual bundle variables at the CLI with `--var` when needed.
 
-# Or deploy manually with custom catalogs
+```bash
+# Deploy using the defaults from databricks.yml
+databricks bundle deploy -p <profile>
+
+# Or deploy with one-off variable overrides
 databricks bundle deploy -p <profile> \
   --var="raw_catalog=my_raw" \
   --var="raw_schema=fhrs" \
@@ -125,14 +130,14 @@ databricks bundle run ingest_fhrs
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `raw_catalog` | `workspace` | Catalog for raw ingest tables |
-| `raw_schema` | `fhrs_raw` | Schema for raw ingest tables |
-| `bronze_catalog` | `workspace` | Catalog for bronze tables |
+| `raw_catalog` | `raw` | Catalog for raw ingest tables |
+| `raw_schema` | `fhrs` | Schema for raw ingest tables |
+| `bronze_catalog` | `bronze` | Catalog for bronze tables |
 | `bronze_schema` | `fhrs` | Schema for bronze tables |
-| `silver_catalog` | `workspace` | Catalog for silver tables |
-| `silver_schema` | `fhrs_silver` | Schema for silver tables |
-| `gold_catalog` | `workspace` | Catalog for gold tables |
-| `gold_schema` | `fhrs_gold` | Schema for gold tables |
+| `silver_catalog` | `silver` | Catalog for silver tables |
+| `silver_schema` | `fhrs` | Schema for silver tables |
+| `gold_catalog` | `gold` | Catalog for gold tables |
+| `gold_schema` | `fhrs` | Schema for gold tables |
 
 ## Data Sources
 

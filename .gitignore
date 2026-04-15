@@ -2,6 +2,6 @@
 .databricks
 .ai-dev-kit
 .vscode
-.github
+.github/skills
 .mcp.json
 .env

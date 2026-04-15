@@ -3,13 +3,29 @@ name = "dbx-dp-food-hygiene-ratings"
 version = "1.1.0"
 description = "Basic ingestion for Food hygiene ratings in the UK using custom pyspark data sources and declarative pipelines."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12,<3.13"
+license = { text = "MIT" }
+authors = [
+    { name = "Alex Dimmock", email = "atedimmock@gmail.com" },
+]
 dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/atedimmock/dbx-dp-food-hygiene-ratings"
+Repository = "https://github.com/atedimmock/dbx-dp-food-hygiene-ratings"
+Issues = "https://github.com/atedimmock/dbx-dp-food-hygiene-ratings/issues"
 
 [dependency-groups]
 dev = [
     "databricks-connect>=18.1.2",
+    "ruff>=0.11.9",
 ]
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint.per-file-ignores]
+"typings/__builtins__.pyi" = ["F403", "F405"]
 
 [build-system]
 requires = ["uv_build>=0.6.6,<0.7"]
